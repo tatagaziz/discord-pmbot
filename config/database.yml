@@ -8,8 +8,8 @@ default: &default
   adapter: mysql2
   encoding: utf8
   host: db
-  username: root
-  password: root
+  username: <%= ENV.fetch('DB_USERNAME', 'root') %>
+  password: <%= ENV.fetch('DB_PASSWORD', 'root') %>
   pool: 5
 
 
