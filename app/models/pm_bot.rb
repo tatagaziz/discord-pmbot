@@ -1,11 +1,11 @@
 require 'singleton'
 require 'discordrb'
 
-class PMBot
+class PmBot
   include Singleton
 
   def initialize
-    @bot = Discordrb::Commands::CommandBot.new token: ENV.fetch('BOT_TOKEN', ''), prefix: '!'
+    @bot = Discordrb::Commands::CommandBot.new token: ENV.fetch('BOT_TOKEN', 'ODUzODk0MDUzMjM3MjI3NTIx.YMcAzg.Sn4AbPXq8u-WefZBezTm0C6qGu4'), prefix: '!'
     init_functions
   end
 
@@ -13,6 +13,13 @@ class PMBot
     @bot.run(true)
   end
 
+  def stop
+    @bot.stop
+  end
+
+  def connected?
+    @bot.connected?
+  end
   private
 
   def init_functions
@@ -21,7 +28,7 @@ class PMBot
 
   def send_user_name
     @bot.command :user do |event|
-      event.user.name
+      return event.user.name
     end
   end
 
