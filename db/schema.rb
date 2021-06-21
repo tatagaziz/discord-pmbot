@@ -10,10 +10,9 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2021_06_18_024817) do
+ActiveRecord::Schema.define(version: 2021_06_21_075621) do
 
   create_table "project_leaders", charset: "utf8", force: :cascade do |t|
-    t.string "discord_id"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
     t.bigint "servers_id"
@@ -25,8 +24,11 @@ ActiveRecord::Schema.define(version: 2021_06_18_024817) do
     t.string "description"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
-    t.bigint "project_leaders_id"
-    t.index ["project_leaders_id"], name: "index_projects_on_project_leaders_id"
+    t.bigint "project_leader_id"
+    t.string "name"
+    t.bigint "server_id", null: false
+    t.index ["project_leader_id"], name: "index_projects_on_project_leader_id"
+    t.index ["server_id"], name: "index_projects_on_server_id"
   end
 
   create_table "servers", charset: "utf8", force: :cascade do |t|
@@ -37,4 +39,5 @@ ActiveRecord::Schema.define(version: 2021_06_18_024817) do
   end
 
   add_foreign_key "project_leaders", "servers", column: "servers_id"
+  add_foreign_key "projects", "servers"
 end
