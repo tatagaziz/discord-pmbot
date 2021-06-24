@@ -41,7 +41,7 @@ class PmBot
     @bot.command :assign_leader, min_args: 1, max_args: 1, description: 'assign user as leader', usage: '!assign_leader @username' do |event, mention |
       owner_request_validation(event.server, event.user.id) do
           discord_user_id = get_discord_user_id_by_mention(mention)
-          server = get_server_by_discord_id(event.server.id)
+          server = Server.find_by(discord_server_id:event.server.id)
           server_member = event.server.member(discord_user_id)
           if server_member
             new_project_leader = ProjectLeader.new(discord_user_id: server_member.id, server_id:server.id)
@@ -63,7 +63,8 @@ class PmBot
         event.user.await! do |answer_event|
           if answer_event.message.content =~ /^[Yy]+/
             discord_leader_id = get_discord_user_id_by_mention(mention)
-            leader = get_leader_by_discord_id(discord_leader_id, answer_event.server.id)
+            server = Server.find_by(discord_server_id:event.server.id)
+            leader = ProjectLeader.find_by(discord_user_id:discord_leader_id, server_id:server.id)
             if leader.destroy
               answer_event.respond "<@#{discord_leader_id}> has been removed from leader"
             else
@@ -82,8 +83,8 @@ class PmBot
     # Create Project
     @bot.command :create_project, min_args: 1, max_args: 2, description: 'create new project', usage: '!create_project <name> <description:optional>' do |event, project_name, description|
       leader_request_validation(event.server, event.user.id) do
-        server = get_server_by_discord_id(event.server.id)
-        leader = get_leader_by_discord_id(event.user.id, event.server.id)
+        server = Server.find_by(discord_server_id:event.server.id)
+        leader = ProjectLeader.find_by(discord_user_id:event.user.id, server_id:server.id)
         new_project = Project.new(project_leader_id:leader.id, server_id:server.id, name:project_name, description:description)
 
         return "Project successfully created, id: #{new_project.id}, name: #{project_name}" if new_project.save
@@ -98,7 +99,7 @@ class PmBot
     end
     mention[2..-2]
   end
-
+  ## TODO: Refactor to use rescue from ruby
   def owner_request_validation(discord_server, discord_user_id)
     server_owner?(discord_server, discord_user_id) do
       server_registered?(discord_server) do
@@ -140,13 +141,4 @@ class PmBot
       'Server is not yet registered'
     end
   end
-end
-
-def get_server_by_discord_id(discord_server_id)
-  Server.find_by(discord_server_id:discord_server_id)
-end
-
-def get_leader_by_discord_id(discord_user_id, discord_server_id)
-  server = get_server_by_discord_id(discord_server_id)
-  ProjectLeader.find_by(discord_user_id:discord_user_id, server_id:server.id)
 end
