@@ -1,0 +1,15 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  project_leader_id: MyString
+  name: MyString
+  status: MyString
+  description: MyString
+  assignee_discord_id: MyString
+
+two:
+  project_leader_id: MyString
+  name: MyString
+  status: MyString
+  description: MyString
+  assignee_discord_id: MyString

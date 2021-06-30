@@ -21,5 +21,6 @@ module DiscordPmbot
     config.after_initialize do
       PmBot.instance.run
     end
+    config.hosts << "t-pmbot.herokuapp.com"
   end
 end
