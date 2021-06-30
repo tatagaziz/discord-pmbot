@@ -38,7 +38,7 @@ ActiveRecord::Schema.define(version: 2021_06_29_071922) do
     t.datetime "updated_at", precision: 6, null: false
   end
 
-  create_table "task_to_tasks", id: false, charset: "utf8", force: :cascade do |t|
+  create_table "task_to_tasks", charset: "utf8", force: :cascade do |t|
     t.bigint "parent_task_id"
     t.bigint "child_task_id"
   end

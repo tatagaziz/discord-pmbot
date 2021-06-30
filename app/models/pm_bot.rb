@@ -139,10 +139,11 @@ class PmBot
         tasks = Task.where(assignee_discord_id: invoker_discord_id)
       end
       if !tasks.empty?
-        tasks.each do |task|
+        tasks.each_with_index do |task, index|
           status = task.status == Task::FINISHED ? "FINISHED" : "UNFINISHED"
-          dependencies = task.parent_tasks.exist? ? task.parent_tasks.map(&:to_s).join(",") : "NONE"
-          event << "[DEPENDS ON:#{dependencies}][USER: #{@bot.user(task.assignee_discord_id.to_i).username}][ID:#{task.id} - #{status}]\n#{task.description}"
+          dependencies = task.parent_tasks.exists? ? task.parent_tasks.map(&:to_s).join(",") : "non"
+          username = @bot.user(task.assignee_discord_id.to_i)
+          event << "#{index+1}. [DEPENDS ON: #{dependencies}] [USER: #{username.username}] [ID:#{task.id} - #{status}]\n#{task.description}\n"
         end
       else
         event << "No task found"
@@ -188,13 +189,22 @@ class PmBot
         return "Only leader may use this command"
       end
 
-      parent_task = Task.find_by!(id:parent_id)
-      child_task = Task.find_by!(id:child_id)
+      begin
+        parent_task = Task.find_by!(id:parent_id)
+      rescue ActiveRecord::RecordNotFound => e
+        return "Parent task ID not found"
+      end
+      begin
+        child_task = Task.find_by!(id:child_id)
+      rescue ActiveRecord::RecordNotFound => e
+        return "Child task ID not found"
+      end
       parent_task.child_tasks << child_task
 
-      "Dependency [ID:#{parent_id}] -> [ID:#{child_id}] set"
-    rescue ActiveRecord::RecordNotFound => e
-      return "Task with ID #{e.primary_key} not found"
+      "Dependency [ID:#{parent_id}] -> [ID:#{child_id}] set. #{parent_task.child_tasks.exists?}"
+
+    rescue ActiveRecord::RecordInvalid
+      return "Dependency setting failed"
     end
   end
 
