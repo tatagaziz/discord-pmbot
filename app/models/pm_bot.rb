@@ -50,7 +50,7 @@ class PmBot
       server_member = event.server.member(discord_user_id)
       if server_member
         ProjectLeader.create!(discord_user_id: server_member.id, server_id: server.id)
-        return "#{event.user.username} has been assigned as project leader"
+        return "#{@bot.user(discord_user_id).username} has been assigned as project leader"
       else
         return 'Member not found'
       end
@@ -112,38 +112,48 @@ class PmBot
     end
 
     # Create Task
-    @bot.command :create_task, min_args: 2, max_args: 2, description: 'create new task for user', usage: '!create_task <@username> <task_description>' do |event, mention, description|
+    @bot.command :create_task, min_args: 2, description: 'create new task for user', usage: '!create_task <@username> <task_description>' do |event, mention, *description|
       leader = validate_leader!(event)
       discord_user_id = get_discord_user_id_by_mention(mention)
-      Task.create!(name:"", status:Task::INCOMPLETE, description:description, assignee_discord_id:discord_user_id, project_leader_id:leader.id)
+      description = description.join(" ")
+      Task.create!(name:"", status:Task::UNFINISHED, description:description, assignee_discord_id:discord_user_id, project_leader_id:leader.id)
       "Task \"#{description}\" has been successfully assigned to #{mention}"
     rescue ActiveRecord::RecordNotFound => e
       if e.model == Server
         return "Server is not registered"
       else
-        return "Leader not found"
+        return "Only leader may use this command"
       end
     rescue ActiveRecord::RecordInvalid
       return 'Task creation failed'
     end
 
     # View one's own tasks
-    @bot.command :view_tasks, description: 'see own tasks', usage: '!view_tasks' do |event|
+    @bot.command :view_tasks, description: "see your own tasks. -all option to see all tasks", usage: '!view_tasks [-all]' do |event, opt|
       invoker_discord_id = event.user.id
-      tasks = Task.where(assignee_discord_id:invoker_discord_id)
+      if opt == "-all"
+        !validate_leader!(event)
+        leader_id = ProjectLeader.find_by!(discord_user_id:invoker_discord_id)
+        tasks = Task.where(project_leader_id: leader_id)
+      else
+        tasks = Task.where(assignee_discord_id: invoker_discord_id)
+      end
       if !tasks.empty?
         tasks.each do |task|
           status = task.status == Task::FINISHED ? "FINISHED" : "UNFINISHED"
-          event << "[ID:#{task.id} - #{status}]  #{task.description}"
+          dependencies = task.parent_tasks.exist? ? task.parent_tasks.map(&:to_s).join(",") : "NONE"
+          event << "[DEPENDS ON:#{dependencies}][USER: #{@bot.user(task.assignee_discord_id.to_i).username}][ID:#{task.id} - #{status}]\n#{task.description}"
         end
       else
-        event << "No task is assigned to you"
+        event << "No task found"
       end
       return nil
+    rescue ActiveRecord::RecordNotFound
+      return "Only a leader may use -all option "
     end
 
     # Finish a task
-    @bot.command :finish_task, min_args: 1, max_args: 1, description: 'finish task by task id', usage: '!finish_task <task_id1>, <task_id2>, ... ' do |event, *args|
+    @bot.command :finish_task, min_args: 1, max_args: 1, description: 'finish task by task id', usage: '!finish_task <task_id1> <task_id2> ... ' do |event, *args|
       invoker_discord_id = event.user.id
       tasks = Task.where(id:args.map(&:to_i), assignee_discord_id: invoker_discord_id, status:Task::UNFINISHED)
       if !tasks.empty?
@@ -156,6 +166,41 @@ class PmBot
       end
       return nil
     end
+
+    @bot.command :remind_task, description: "remind all member with incomplete tasks", usage: "!remind_task" do |event|
+      validate_leader!(event)
+
+      leader = ProjectLeader.find_by!(discord_user_id: event.user.id)
+      tasks = Task.where(project_leader_id: leader.id, status: Task::UNFINISHED)
+      tasks.each do |task|
+        message = "Don't forget to finish task  [ID:#{task.id}] \"#{task.description}\""
+        pm_user(task.assignee_discord_id, message)
+      end
+      nil
+    rescue ActiveRecord::RecordNotFound
+      return "Only leader may use this command"
+    end
+
+    @bot.command :set_dependency, min_args: 2, max_args: 2, description: "set task dependency. Use !view_tasks -all to see task id", usage: "!set_dependency <task_that_need_to_be_done_first_id> <task_after_id>" do |event, parent_id, child_id|
+      begin
+      validate_leader!(event)
+      rescue ActiveRecord::RecordNotFound
+        return "Only leader may use this command"
+      end
+
+      parent_task = Task.find_by!(id:parent_id)
+      child_task = Task.find_by!(id:child_id)
+      parent_task.child_tasks << child_task
+
+      "Dependency [ID:#{parent_id}] -> [ID:#{child_id}] set"
+    rescue ActiveRecord::RecordNotFound => e
+      return "Task with ID #{e.primary_key} not found"
+    end
+  end
+
+  def pm_user(discord_user_id, message)
+    discord_user = @bot.user(discord_user_id)
+    discord_user.pm(message)
   end
 
   def get_discord_user_id_by_mention(mention)

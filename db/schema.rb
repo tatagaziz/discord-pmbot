@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2021_06_27_113550) do
+ActiveRecord::Schema.define(version: 2021_06_29_071922) do
 
   create_table "project_leaders", charset: "utf8", force: :cascade do |t|
     t.datetime "created_at", precision: 6, null: false
@@ -36,6 +36,11 @@ ActiveRecord::Schema.define(version: 2021_06_27_113550) do
     t.string "name"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
+  end
+
+  create_table "task_to_tasks", id: false, charset: "utf8", force: :cascade do |t|
+    t.bigint "parent_task_id"
+    t.bigint "child_task_id"
   end
 
   create_table "tasks", charset: "utf8", force: :cascade do |t|
