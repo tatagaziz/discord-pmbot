@@ -160,7 +160,12 @@ class PmBot
       if !tasks.empty?
         tasks.each do |task|
           task.update(status: Task::FINISHED)
-          event << "Task [ID:#{task.id}] \"#{task.description}\" has been finished"
+          message = "Task [ID:#{task.id}] \"#{task.description}\" has been finished"
+          task.child_tasks.each do |child_task|
+            child_message = "Parent " + message +". Please proceed with task [ID:#{child_task.id}] \"#{task.description}\""
+            pm_user(child_task.assignee_discord_id.to_i, child_message)
+          end
+          event << message
         end
       else
         event << "The task ID(s) specified are either not yours, doesn't exist, or is already completed"
