@@ -141,7 +141,7 @@ class PmBot
       if !tasks.empty?
         tasks.each_with_index do |task, index|
           status = task.status == Task::FINISHED ? "FINISHED" : "UNFINISHED"
-          dependencies = task.child_task_tables.exists? ? task.child_task_tables.map(&:to_s).join(",") : "none"
+          dependencies = task.child_task_tables.exists? ? task.parent_tasks.map(&:id).join(",") : "none"
           username = @bot.user(task.assignee_discord_id.to_i)
           event << "#{index+1}. [DEPENDS ON: #{dependencies}] [USER: #{username.username}] [ID:#{task.id} - #{status}]\n#{task.description}\n"
         end
@@ -161,9 +161,9 @@ class PmBot
         tasks.each do |task|
           task.update(status: Task::FINISHED)
           message = "Task [ID:#{task.id}] \"#{task.description}\" has been finished"
-          task.child_tasks.each do |child_task|
+          task.child_tasks&.each do |child_task|
             child_message = "Parent " + message +". Please proceed with task [ID:#{child_task.id}] \"#{task.description}\""
-            pm_user(child_task.assignee_discord_id.to_i, child_message)
+            pm_user(child_task.assignee_discord_id, child_message)
           end
           event << message
         end
