@@ -206,7 +206,7 @@ class PmBot
       end
       parent_task.child_tasks << child_task
 
-      "Dependency [ID:#{parent_id}] -> [ID:#{child_id}] set. #{parent_task.child_tasks.exists?}"
+      "Dependency [ID:#{parent_id}] -> [ID:#{child_id}] set"
 
     rescue ActiveRecord::RecordInvalid
       return "Dependency setting failed"
